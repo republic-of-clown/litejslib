@@ -54,6 +54,83 @@ Live.prototype = (function(mainScript) {
                 homepage = null;
             }
         },
+        craft: {
+            value: function() {
+                var elements = null;
+                var index = -1;
+                return {
+                    append: function(text) {
+                        elements[index].append(text);
+                    },
+                    appendByHTML: function(text) {
+                        elements[index].innerHTML = elements[index].outerHTML + text;
+                    },
+                    back: function() {
+                        if (0 < index--) {
+                            elements.pop();
+                        } else {
+                            elements = null;
+                            index = -1;
+                        }
+                    },
+                    backTo: function(tagName) {
+                        if (tagName) {
+                            tagName = tagName.toUpperCase();
+                        }
+                        do {
+                            if (0 < index--) {
+                                elements.pop();
+                            } else {
+                                elements = null;
+                                index = -1;
+                            }
+                        } while (index !== -1 && elements[index].tagName !== tagName);
+                    },
+                    flush: function() {
+                        var element = elements[0];
+                        elements = null;
+                        index = -1;
+                        return element;
+                    },
+                    init: function(html) {
+                        elements[index].innerHTML = html ?? '';
+                    },
+                    set: function(name, value) {
+                        elements[index].setAttribute(name, value ?? name);
+                    },
+                    start: function(tag, className, id) {
+                        var element = document.createElement(tag);
+                        if (index < 0) {
+                            index = 0;
+                            elements = [element];
+                        } else {
+                            elements.push(element);
+                            elements[index++].appendChild(element);
+                        }
+                        if (className) {
+                            element.className = className;
+                        }
+                        if (id) {
+                            element.id = id;
+                        }
+                        return element;
+                    },
+                    startCustom: function(element) {
+                        if (index < 0) {
+                            index = 0;
+                            elements = [element];
+                        } else {
+                            elements.push(element);
+                            ++index;
+                        }
+                        return element;
+                    },
+                    unset: function(name) {
+                        elements[index].removeAttribute(name);
+                    }
+                };
+            }
+        },
         defineConstValue: {
             value: function(prop, value) {
                 Object.defineProperty(this, prop, {
