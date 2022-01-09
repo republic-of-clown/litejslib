@@ -121,7 +121,7 @@ Live.prototype = (function(mainScript) {
                     br: function() {
                         return start('br', '', '', true);
                     },
-                    close: function(tagName, className, id, properties) {
+                    close: function(tagName, className, id, properties, text) {
                         if (tagName) {
                             var element = start(tagName, className, id, true);
                             element.set = set;
@@ -130,6 +130,9 @@ Live.prototype = (function(mainScript) {
                                 for (var i in properties) {
                                     element.set(i, properties[i]);
                                 }
+                            }
+                            if (text) {
+                                elements[index].append(text);
                             }
                             return element;
                         }
