@@ -44,7 +44,13 @@ Live.prototype = (function(mainScript) {
     }
 
     function set(name, value) {
-        this.setAttribute(name, value ?? name);
+        if (name instanceof Object) {
+            for (var key in name) {
+                this.setAttribute(key, name[key]);
+            }
+        } else {
+            this.setAttribute(name, value ?? '');
+        }
     }
 
     function unset(name) {
@@ -118,6 +124,15 @@ Live.prototype = (function(mainScript) {
                             }
                         } while (index !== -1 && elements[index].tagName !== tagName);
                     },
+                    blockquote: function(html) {
+                        var element = start('blockquote', '', '', true);
+                        element.set = set;
+                        element.unset = unset;
+                        if (html) {
+                            element.innerHTML = '<p>' + (Array.isArray(html) ? html.join('</p><p>') : html) + '</p>';
+                        }
+                        return element;
+                    },
                     br: function() {
                         return start('br', '', '', true);
                     },
@@ -128,7 +143,7 @@ Live.prototype = (function(mainScript) {
                             element.unset = unset;
                             if (properties) {
                                 for (var i in properties) {
-                                    element.set(i, properties[i]);
+                                    element.setAttribute(i, properties[i]);
                                 }
                             }
                             if (text) {
@@ -151,11 +166,29 @@ Live.prototype = (function(mainScript) {
                         index = -1;
                         return element;
                     },
+                    h: function(html, size = 3) {
+                        var element = start('h' + size, '', '', true);
+                        element.set = set;
+                        element.unset = unset;
+                        if (html) {
+                            element.innerHTML = html;
+                        }
+                        return element;
+                    },
                     hr: function() {
                         return start('hr', '', '', true);
                     },
                     init: function(html) {
                         elements[index].innerHTML = html ?? '';
+                    },
+                    p: function(html) {
+                        var element = start('p', '', '', true);
+                        element.set = set;
+                        element.unset = unset;
+                        if (html) {
+                            element.innerHTML = Array.isArray(html) ? html.join('<br>') : html;
+                        }
+                        return element;
                     },
                     set: function(name, value) {
                         elements[index].setAttribute(name, value ?? name);
@@ -166,7 +199,7 @@ Live.prototype = (function(mainScript) {
                         element.unset = unset;
                         if (properties) {
                             for (var i in properties) {
-                                element.set(i, properties[i]);
+                                element.setAttribute(i, properties[i]);
                             }
                         }
                         if (html) {
