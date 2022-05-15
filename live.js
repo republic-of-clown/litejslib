@@ -2,8 +2,11 @@
 
 function Live() {}
 
-Live.prototype = (function(mainScript) {
+Live.prototype = (function(currentScript) {
 
+    var data = { defersrc: currentScript.getAttribute('data-defersrc'), index: currentScript.getAttribute('data-index') };
+    var dataCanonical = document.querySelector('link[rel="canonical"]');
+    var dataSuffix = currentScript.src.split('?')[1];
     var home = null;
     var homepage = null;
     var jsArray = [];
@@ -12,18 +15,25 @@ Live.prototype = (function(mainScript) {
     var replied = false;
     var scripts = {};
 
-    if (mainScript) {
-        jsArray.push(mainScript);
+    if (data.defersrc) {
+        jsArray.push(data.defersrc);
         oncreate();
     } else {
         replied = true;
+    }
+
+    if (data.index) {
+        home = new URL(document.URL);
+        if (dataCanonical && home.searchParams.has(data.index)) {
+            dataCanonical.href = dataCanonical.href + '?' + data.index + '=' + home.searchParams.get(data.index);
+        }
     }
 
     function oncreate() {
         if (jsIndex < jsArray.length) {
             var script = document.createElement('script');
             script.defer = true;
-            script.src = jsArray[jsIndex];
+            script.src = dataSuffix ? jsArray[jsIndex] + '?' + dataSuffix : jsArray[jsIndex];
             script.onload = onscript;
             document.head.appendChild(script);
         } else {
@@ -54,7 +64,13 @@ Live.prototype = (function(mainScript) {
     }
 
     function unset(name) {
-        this.removeAttribute(name);
+        if (name instanceof Array) {
+            for (var key in name) {
+                this.removeAttribute(name[key]);
+            }
+        } else {
+            this.removeAttribute(name);
+        }
     }
 
     return Object.create(Object.prototype, {
@@ -70,6 +86,7 @@ Live.prototype = (function(mainScript) {
         },
         craft: {
             value: function() {
+                var cache = null;
                 var elements = null;
                 var index = -1;
                 var start = function(tagName, className, id, closing = false) {
@@ -181,6 +198,12 @@ Live.prototype = (function(mainScript) {
                     init: function(html) {
                         elements[index].innerHTML = html ?? '';
                     },
+                    load: function() {
+                        elements = cache;
+                        index = cache.length - 1;
+                        cache = null;
+                        return elements[index];
+                    },
                     p: function(html) {
                         var element = start('p', '', '', true);
                         element.set = set;
@@ -190,8 +213,11 @@ Live.prototype = (function(mainScript) {
                         }
                         return element;
                     },
+                    save: function() {
+                        cache = Array.from(elements);
+                    },
                     set: function(name, value) {
-                        elements[index].setAttribute(name, value ?? name);
+                        elements[index].set(name, value);
                     },
                     start: function(tagName, className, id, properties, html) {
                         var element = start(tagName, className, id);
@@ -212,15 +238,15 @@ Live.prototype = (function(mainScript) {
                             index = 0;
                             elements = [element];
                         } else {
+                            index = elements.length;
                             elements.push(element);
-                            ++index;
                         }
                         element.set = set;
                         element.unset = unset;
                         return element;
                     },
                     unset: function(name) {
-                        elements[index].removeAttribute(name);
+                        elements[index].unset(name);
                     }
                 };
             }
@@ -330,10 +356,33 @@ Live.prototype = (function(mainScript) {
                 }
             }
         },
+        importYouTube: {
+            value: function(reply) {
+                var src = 'https://www.youtube.com/iframe_api';
+                scripts[src] = document.createElement('script');
+                scripts[src].async = true;
+                scripts[src].src = src;
+                document.head.insertBefore(scripts[src], currentScript);
+                window.onYouTubeIframeAPIReady = reply?.bind(this);
+            }
+        },
+        importYTPlayer: {
+            value: function(id, onready, onstate, p = 360) {
+                var x = Math.ceil(p * 16 / 9);
+                var y = p;
+                return new YT.Player(id, {
+                    events: { onReady: onready, onStateChange: onstate },
+                    host: 'https://www.youtube-nocookie.com',
+                    videoId: id,
+                    width: x, height: y
+                });
+            }
+        },
         invoke: {
-            value: function(prop) {
-                if (this.hasOwnProperty(prop)) {
-                    this[prop]();
+            value: function() {
+                var args = Array.from(arguments);
+                if (args.length !== 0 && this.hasOwnProperty(args[0])) {
+                    this[args.shift()].apply(this, args);
                     return true;
                 }
                 return false;
@@ -341,6 +390,6 @@ Live.prototype = (function(mainScript) {
         },
         [Symbol.toStringTag]: { value: Live.name }
     });
-})(document.currentScript.getAttribute('data-defersrc'));
+})(document.currentScript);
 
 var live = new Live();
