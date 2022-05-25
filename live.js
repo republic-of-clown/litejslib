@@ -33,7 +33,7 @@ Live.prototype = (function(currentScript) {
         if (jsIndex < jsArray.length) {
             var script = document.createElement('script');
             script.defer = true;
-            script.src = dataSuffix ? jsArray[jsIndex] + '?' + dataSuffix : jsArray[jsIndex];
+            script.src = dataSuffix ? jsArray[jsIndex] + (jsArray[jsIndex].indexOf('?') === -1 ? '?' : '&') + dataSuffix : jsArray[jsIndex];
             script.onload = onscript;
             document.head.appendChild(script);
         } else {
