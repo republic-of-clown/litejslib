@@ -116,8 +116,8 @@ Live.prototype = (function(currentScript) {
                     append: function(text) {
                         elements[index].append(text);
                     },
-                    appendByHTML: function(text) {
-                        elements[index].innerHTML = elements[index].outerHTML + text;
+                    appendBeforeHTML: function(text) {
+                        elements[index].innerHTML = text + elements[index].innerHTML;
                     },
                     back: function() {
                         if (0 < index) {
