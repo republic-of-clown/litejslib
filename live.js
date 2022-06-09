@@ -119,6 +119,9 @@ Live.prototype = (function(currentScript) {
                     appendBeforeHTML: function(text) {
                         elements[index].innerHTML = text + elements[index].innerHTML;
                     },
+                    appendHTML: function(text) {
+                        elements[index].innerHTML = elements[index].innerHTML + text;
+                    },
                     back: function() {
                         if (0 < index) {
                             elements.pop();
@@ -132,17 +135,16 @@ Live.prototype = (function(currentScript) {
                         if (tagName) {
                             tagName = tagName.toUpperCase();
                         }
-                        do {
-                            if (0 < index--) {
-                                elements.pop();
-                            } else {
+                        while (elements[index].tagName !== tagName) {
+                            elements.pop();
+                            if (--index < 0) {
                                 elements = null;
-                                index = -1;
+                                break;
                             }
-                        } while (index !== -1 && elements[index].tagName !== tagName);
+                        }
                     },
-                    blockquote: function(html) {
-                        var element = start('blockquote', '', '', true);
+                    blockquote: function(html, className = '', id = '') {
+                        var element = start('blockquote', className, id, true);
                         element.set = set;
                         element.unset = unset;
                         if (html) {
@@ -178,13 +180,16 @@ Live.prototype = (function(currentScript) {
                         return null;
                     },
                     flush: function() {
-                        var element = elements[0];
-                        elements = null;
-                        index = -1;
-                        return element;
+                        if (elements) {
+                            var element = elements[0];
+                            elements = null;
+                            index = -1;
+                            return element;
+                        }
+                        return null;
                     },
-                    h: function(html, size = 3) {
-                        var element = start('h' + size, '', '', true);
+                    h: function(html, className = '', id = '', size = 3) {
+                        var element = start('h' + size, className, id, true);
                         element.set = set;
                         element.unset = unset;
                         if (html) {
@@ -204,8 +209,8 @@ Live.prototype = (function(currentScript) {
                         cache = null;
                         return elements[index];
                     },
-                    p: function(html) {
-                        var element = start('p', '', '', true);
+                    p: function(html, className = '', id = '') {
+                        var element = start('p', className, id, true);
                         element.set = set;
                         element.unset = unset;
                         if (html) {
@@ -218,6 +223,9 @@ Live.prototype = (function(currentScript) {
                     },
                     set: function(name, value) {
                         elements[index].set(name, value);
+                    },
+                    space: function() {
+                        elements[index].append(' ');
                     },
                     start: function(tagName, className, id, properties, html) {
                         var element = start(tagName, className, id);
@@ -234,6 +242,19 @@ Live.prototype = (function(currentScript) {
                         return element;
                     },
                     startCustom: function(element) {
+                        if (index < 0) {
+                            index = 0;
+                            elements = [element];
+                        } else {
+                            index = elements.length;
+                            elements.push(element);
+                        }
+                        element.set = set;
+                        element.unset = unset;
+                        return element;
+                    },
+                    startCustomById: function(id) {
+                        var element = document.getElementById(id);
                         if (index < 0) {
                             index = 0;
                             elements = [element];
@@ -324,11 +345,20 @@ Live.prototype = (function(currentScript) {
                             }
                             return defaultValue;
                         },
-                        set: function(name, defaultValue) {
-                            home.searchParams.set(name, defaultValue);
+                        set: function(name, value) {
+                            home.searchParams.set(name, value);
                             return this;
                         },
-                        toSearchUri: function() {
+                        toSearchUri: function(name, value) {
+                            if (name) {
+                                if (name instanceof Object) {
+                                    for (var key in name) {
+                                        home.searchParams.set(key, name[key]);
+                                    }
+                                } else {
+                                    home.searchParams.set(name, value ?? '');
+                                }
+                            }
                             return home.origin + home.pathname + home.search;
                         },
                         toUri: function() {
