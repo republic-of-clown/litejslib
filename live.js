@@ -311,6 +311,21 @@ Live.prototype = (function(currentScript) {
                 });
             }
         },
+        edit: {
+            value: (function() {
+                var args = [];
+                var replacer = function(text, i) {
+                    return args[i] || args[i] === 0 ? args[i] : text;
+                };
+                return function(text, params) {
+                    args = Array.isArray(params) ? params : [params];
+                    if (Array.isArray(text)) {
+                        return text.join('<br>').replace(/{(\d+)}/g, replacer).split('<br>');
+                    }
+                    return text = text.replace(/{(\d+)}/g, replacer);
+                };
+            })()
+        },
         home: {
             get: function() {
                 if (home === null) {
@@ -346,7 +361,11 @@ Live.prototype = (function(currentScript) {
                             return defaultValue;
                         },
                         set: function(name, value) {
-                            home.searchParams.set(name, value);
+                            if (value) {
+                                home.searchParams.set(name, value);
+                            } else {
+                                home.searchParams.delete(name);
+                            }
                             return this;
                         },
                         toSearchUri: function(name, value) {
@@ -416,6 +435,11 @@ Live.prototype = (function(currentScript) {
                     return true;
                 }
                 return false;
+            }
+        },
+        trim: {
+            value: function(text) {
+                return text.replace(/\s+/g, '');
             }
         },
         [Symbol.toStringTag]: { value: Live.name }
