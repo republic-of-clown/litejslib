@@ -360,6 +360,9 @@ Live.prototype = (function(currentScript) {
                             }
                             return defaultValue;
                         },
+                        reset: function() {
+                            home = new URL(document.URL);
+                        },
                         set: function(name, value) {
                             if (value) {
                                 home.searchParams.set(name, value);
@@ -372,15 +375,29 @@ Live.prototype = (function(currentScript) {
                             if (name) {
                                 if (name instanceof Object) {
                                     for (var key in name) {
-                                        home.searchParams.set(key, name[key]);
+                                        this.set(key, name[key]);
                                     }
                                 } else {
-                                    home.searchParams.set(name, value ?? '');
+                                    this.set(name, value);
                                 }
                             }
                             return home.origin + home.pathname + home.search;
                         },
-                        toUri: function() {
+                        toUri: function(name, value) {
+                            if (name) {
+                                if (name instanceof Object) {
+                                    var params = [];
+                                    for (var key in name) {
+                                        if (name[key]) {
+                                            params.push(key + '=' + name[key]);
+                                        }
+                                    }
+                                    return home.origin + home.pathname + '?' + params.join('&');
+                                }
+                                if (value) {
+                                    return home.origin + home.pathname + '?' + name + '=' + value;
+                                }
+                            }
                             return home.origin + home.pathname;
                         }
                     };
