@@ -53,26 +53,6 @@ Live.prototype = (function(currentScript) {
         oncreate();
     }
 
-    function set(name, value) {
-        if (name instanceof Object) {
-            for (var key in name) {
-                this.setAttribute(key, name[key]);
-            }
-        } else {
-            this.setAttribute(name, value ?? '');
-        }
-    }
-
-    function unset(name) {
-        if (name instanceof Array) {
-            for (var key in name) {
-                this.removeAttribute(name[key]);
-            }
-        } else {
-            this.removeAttribute(name);
-        }
-    }
-
     return Object.create(Object.prototype, {
         constructor: { value: Live },
         clear: {
@@ -85,79 +65,169 @@ Live.prototype = (function(currentScript) {
             }
         },
         craft: {
-            value: function() {
-                var cache = null;
-                var elements = null;
-                var index = -1;
-                var start = function(tagName, className, id, closing = false) {
-                    var element = document.createElement(tagName);
-                    if (closing) {
-                        if (elements !== null) {
-                            elements[index].appendChild(element);
+            value: (function() {
+                var set = function(name, value) {
+                    if (name instanceof Object) {
+                        for (var key in name) {
+                            this.setAttribute(key, name[key]);
                         }
                     } else {
-                        if (index < 0) {
-                            index = 0;
-                            elements = [element];
-                        } else {
-                            elements.push(element);
-                            elements[index++].appendChild(element);
-                        }
+                        this.setAttribute(name, value ?? '');
                     }
-                    if (className) {
-                        element.className = className;
-                    }
-                    if (id) {
-                        element.id = id;
-                    }
-                    return element;
                 };
-                return {
-                    append: function(text) {
-                        elements[index].append(text);
-                    },
-                    appendBeforeHTML: function(text) {
-                        elements[index].innerHTML = text + elements[index].innerHTML;
-                    },
-                    appendHTML: function(text) {
-                        elements[index].innerHTML = elements[index].innerHTML + text;
-                    },
-                    back: function() {
-                        if (0 < index) {
-                            elements.pop();
-                            --index;
+                var unset = function(name) {
+                    if (name instanceof Array) {
+                        for (var key in name) {
+                            this.removeAttribute(name[key]);
+                        }
+                    } else {
+                        this.removeAttribute(name);
+                    }
+                };
+                return function() {
+                    var cache = null;
+                    var elements = null;
+                    var index = -1;
+                    var start = function(tagName, className, id, closing = false) {
+                        var element = document.createElement(tagName);
+                        if (closing) {
+                            if (elements !== null) {
+                                elements[index].appendChild(element);
+                            }
                         } else {
-                            elements = null;
-                            index = -1;
-                        }
-                    },
-                    backTo: function(tagName) {
-                        if (tagName) {
-                            tagName = tagName.toUpperCase();
-                        }
-                        while (elements[index].tagName !== tagName) {
-                            elements.pop();
-                            if (--index < 0) {
-                                elements = null;
-                                break;
+                            if (index < 0) {
+                                index = 0;
+                                elements = [element];
+                            } else {
+                                elements.push(element);
+                                elements[index++].appendChild(element);
                             }
                         }
-                    },
-                    blockquote: function(html, className = '', id = '') {
-                        var element = start('blockquote', className, id, true);
-                        element.set = set;
-                        element.unset = unset;
-                        if (html) {
-                            element.innerHTML = '<p>' + (Array.isArray(html) ? html.join('</p><p>') : html) + '</p>';
+                        if (className) {
+                            element.className = className;
+                        }
+                        if (id) {
+                            element.id = id;
                         }
                         return element;
-                    },
-                    br: function() {
-                        return start('br', '', '', true);
-                    },
-                    close: function(tagName, className, id, properties, text) {
-                        if (tagName) {
-                            var element = start(tagName, className, id, true);
+                    };
+                    return {
+                        append: function(text) {
+                            elements[index].append(text);
+                        },
+                        appendBeforeHTML: function(text) {
+                            elements[index].innerHTML = text + elements[index].innerHTML;
+                        },
+                        appendHTML: function(text) {
+                            elements[index].innerHTML = elements[index].innerHTML + text;
+                        },
+                        back: function() {
+                            if (0 < index) {
+                                elements.pop();
+                                --index;
+                            } else {
+                                elements = null;
+                                index = -1;
+                            }
+                        },
+                        backTo: function(tagName) {
+                            if (tagName) {
+                                tagName = tagName.toUpperCase();
+                            }
+                            while (elements[index].tagName !== tagName) {
+                                elements.pop();
+                                if (--index < 0) {
+                                    elements = null;
+                                    break;
+                                }
+                            }
+                        },
+                        blockquote: function(html, className = '', id = '') {
+                            var element = start('blockquote', className, id, true);
+                            element.set = set;
+                            element.unset = unset;
+                            if (html) {
+                                element.innerHTML = '<p>' + (Array.isArray(html) ? html.join('</p><p>') : html) + '</p>';
+                            }
+                            return element;
+                        },
+                        br: function() {
+                            return start('br', '', '', true);
+                        },
+                        close: function(tagName, className, id, properties, text) {
+                            if (tagName) {
+                                var element = start(tagName, className, id, true);
+                                element.set = set;
+                                element.unset = unset;
+                                if (properties) {
+                                    for (var i in properties) {
+                                        element.setAttribute(i, properties[i]);
+                                    }
+                                }
+                                if (text) {
+                                    elements[index].append(text);
+                                }
+                                return element;
+                            }
+                            if (0 < index) {
+                                elements.pop();
+                                --index;
+                                return elements[index];
+                            }
+                            elements = null;
+                            index = -1;
+                            return null;
+                        },
+                        flush: function() {
+                            if (elements) {
+                                var element = elements[0];
+                                elements = null;
+                                index = -1;
+                                return element;
+                            }
+                            return null;
+                        },
+                        h: function(html, className = '', id = '', size = 3) {
+                            var element = start('h' + size, className, id, true);
+                            element.set = set;
+                            element.unset = unset;
+                            if (html) {
+                                element.innerHTML = html;
+                            }
+                            return element;
+                        },
+                        hr: function() {
+                            return start('hr', '', '', true);
+                        },
+                        init: function(html) {
+                            elements[index].innerHTML = html ?? '';
+                        },
+                        load: function() {
+                            elements = cache;
+                            index = cache.length - 1;
+                            cache = null;
+                            return elements[index];
+                        },
+                        p: function(html, className = '', id = '') {
+                            var element = start('p', className, id, true);
+                            element.set = set;
+                            element.unset = unset;
+                            if (html) {
+                                element.innerHTML = Array.isArray(html) ? html.join('<br>') : html;
+                            }
+                            return element;
+                        },
+                        save: function() {
+                            cache = Array.from(elements);
+                        },
+                        set: function(name, value) {
+                            elements[index].set(name, value);
+                        },
+                        space: function() {
+                            elements[index].append(' ');
+                        },
+                        start: function(tagName, className, id, properties, html) {
+                            var element = start(tagName, className, id);
                             element.set = set;
                             element.unset = unset;
                             if (properties) {
@@ -165,112 +235,42 @@ Live.prototype = (function(currentScript) {
                                     element.setAttribute(i, properties[i]);
                                 }
                             }
-                            if (text) {
-                                elements[index].append(text);
+                            if (html) {
+                                element.innerHTML = html;
                             }
                             return element;
-                        }
-                        if (0 < index) {
-                            elements.pop();
-                            --index;
-                            return elements[index];
-                        }
-                        elements = null;
-                        index = -1;
-                        return null;
-                    },
-                    flush: function() {
-                        if (elements) {
-                            var element = elements[0];
-                            elements = null;
-                            index = -1;
-                            return element;
-                        }
-                        return null;
-                    },
-                    h: function(html, className = '', id = '', size = 3) {
-                        var element = start('h' + size, className, id, true);
-                        element.set = set;
-                        element.unset = unset;
-                        if (html) {
-                            element.innerHTML = html;
-                        }
-                        return element;
-                    },
-                    hr: function() {
-                        return start('hr', '', '', true);
-                    },
-                    init: function(html) {
-                        elements[index].innerHTML = html ?? '';
-                    },
-                    load: function() {
-                        elements = cache;
-                        index = cache.length - 1;
-                        cache = null;
-                        return elements[index];
-                    },
-                    p: function(html, className = '', id = '') {
-                        var element = start('p', className, id, true);
-                        element.set = set;
-                        element.unset = unset;
-                        if (html) {
-                            element.innerHTML = Array.isArray(html) ? html.join('<br>') : html;
-                        }
-                        return element;
-                    },
-                    save: function() {
-                        cache = Array.from(elements);
-                    },
-                    set: function(name, value) {
-                        elements[index].set(name, value);
-                    },
-                    space: function() {
-                        elements[index].append(' ');
-                    },
-                    start: function(tagName, className, id, properties, html) {
-                        var element = start(tagName, className, id);
-                        element.set = set;
-                        element.unset = unset;
-                        if (properties) {
-                            for (var i in properties) {
-                                element.setAttribute(i, properties[i]);
+                        },
+                        startCustom: function(element) {
+                            if (index < 0) {
+                                index = 0;
+                                elements = [element];
+                            } else {
+                                index = elements.length;
+                                elements.push(element);
                             }
+                            element.set = set;
+                            element.unset = unset;
+                            return element;
+                        },
+                        startCustomById: function(id) {
+                            var element = document.getElementById(id);
+                            if (index < 0) {
+                                index = 0;
+                                elements = [element];
+                            } else {
+                                index = elements.length;
+                                elements.push(element);
+                            }
+                            element.set = set;
+                            element.unset = unset;
+                            return element;
+                        },
+                        unset: function(name) {
+                            elements[index].unset(name);
                         }
-                        if (html) {
-                            element.innerHTML = html;
-                        }
-                        return element;
-                    },
-                    startCustom: function(element) {
-                        if (index < 0) {
-                            index = 0;
-                            elements = [element];
-                        } else {
-                            index = elements.length;
-                            elements.push(element);
-                        }
-                        element.set = set;
-                        element.unset = unset;
-                        return element;
-                    },
-                    startCustomById: function(id) {
-                        var element = document.getElementById(id);
-                        if (index < 0) {
-                            index = 0;
-                            elements = [element];
-                        } else {
-                            index = elements.length;
-                            elements.push(element);
-                        }
-                        element.set = set;
-                        element.unset = unset;
-                        return element;
-                    },
-                    unset: function(name) {
-                        elements[index].unset(name);
-                    }
+                    };
                 };
-            }
+            })()
         },
         defineConstValue: {
             value: function(prop, value) {
