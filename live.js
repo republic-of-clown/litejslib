@@ -272,6 +272,17 @@ Live.prototype = (function(currentScript) {
                 };
             })()
         },
+        decode: {
+            value: function(hexstr) {
+                var u8arr = new Uint8Array(hexstr.length >> 1);
+                for (var i = 0, j = 0; i < u8arr.length; ++i) {
+                    var jNext = j + 2;
+                    u8arr[i] = parseInt(hexstr.slice(j, jNext), 16);
+                    j = jNext;
+                }
+                return this.decoder.decode(u8arr);
+            }
+        },
         defineConstValue: {
             value: function(prop, value) {
                 Object.defineProperty(this, prop, {
@@ -325,6 +336,20 @@ Live.prototype = (function(currentScript) {
                     return text = text.replace(/{(\d+)}/g, replacer);
                 };
             })()
+        },
+        encode: {
+            value: function(str) {
+                var u8arr = this.encoder.encode(str);
+                for (var i = 0, hexstr = ''; i < u8arr.length; ++i) {
+                    var byte = u8arr[i];
+                    if (byte < 16) {
+                        hexstr += '0' + u8arr[i].toString(16);
+                    } else {
+                        hexstr += u8arr[i].toString(16)
+                    }
+                }
+                return hexstr;
+            }
         },
         home: {
             get: function() {
