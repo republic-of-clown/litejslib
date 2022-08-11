@@ -283,6 +283,16 @@ Live.prototype = (function(currentScript) {
                 return this.decoder.decode(u8arr);
             }
         },
+        define: {
+            value: function(prop, value) {
+                Object.defineProperty(this, prop, {
+                    value: value,
+                    configurable: true,
+                    enumerable: true,
+                    writable: true
+                });
+            }
+        },
         defineConstValue: {
             value: function(prop, value) {
                 Object.defineProperty(this, prop, {
@@ -477,6 +487,80 @@ Live.prototype = (function(currentScript) {
                     return true;
                 }
                 return false;
+            }
+        },
+        lang: {
+            value: function(pattern) {
+                if (pattern) {
+                    return (navigator.language ?? '').slice(0, 2) === pattern;
+                }
+                return navigator.language ?? '';
+            }
+        },
+        rand: {
+            value: (function() {
+                var buffer = new Uint32Array(1);
+                var num = function() { crypto.getRandomValues(buffer); return buffer[0]; };
+                return function(range = 0) {
+                    switch (range) {
+                        case 0x0:
+                        case 0x100000000:
+                            return num();
+                        case 0x1:
+                            return 0;
+                        case 0x2:
+                        case 0x4:
+                        case 0x8:
+                        case 0x10:
+                        case 0x20:
+                        case 0x40:
+                        case 0x80:
+                        case 0x100:
+                        case 0x200:
+                        case 0x400:
+                        case 0x800:
+                        case 0x1000:
+                        case 0x2000:
+                        case 0x4000:
+                        case 0x8000:
+                        case 0x10000:
+                        case 0x20000:
+                        case 0x40000:
+                        case 0x80000:
+                        case 0x100000:
+                        case 0x200000:
+                        case 0x400000:
+                        case 0x800000:
+                        case 0x1000000:
+                        case 0x2000000:
+                        case 0x4000000:
+                        case 0x8000000:
+                        case 0x10000000:
+                        case 0x20000000:
+                        case 0x40000000:
+                            return num() & (range - 1);
+                        case 0x80000000:
+                            return num() & 0x7FFFFFFF;
+                        default:
+                            if (range < 0 || range > 0x100000000) {
+                                return num();
+                            }
+                            return num() % range;
+                    }
+            }})()
+        },
+        rand64: {
+            value: function(numofInt64, format = false) {
+                var hashArray = new BigUint64Array(numofInt64);
+                crypto.getRandomValues(hashArray);
+                if (format) {
+                    var hash = '';
+                    for (var i = 0; i < numofInt64; ++i) {
+                        hash += hashArray[i].toString(16).padStart(16, '0');
+                    }
+                    return hash;
+                }
+                return hashArray;
             }
         },
         trim: {
