@@ -66,7 +66,16 @@ Live.prototype = (function(currentScript) {
         },
         craft: {
             value: (function() {
-                var set = function(name, value) {
+                HTMLElement.prototype.init = function(html) {
+                    this.innerHTML = html ?? '';
+                };
+                HTMLElement.prototype.isset = function(name, value = '') {
+                    if (value !== '') {
+                        return this.getAttribute(name) === value;
+                    }
+                    return this.getAttribute(name) !== null;
+                };
+                HTMLElement.prototype.set = function(name, value) {
                     if (name instanceof Object) {
                         for (var key in name) {
                             this.setAttribute(key, name[key]);
@@ -75,8 +84,8 @@ Live.prototype = (function(currentScript) {
                         this.setAttribute(name, value ?? '');
                     }
                 };
-                var unset = function(name) {
-                    if (name instanceof Array) {
+                HTMLElement.prototype.unset = function(name) {
+                    if (Array.isArray(name)) {
                         for (var key in name) {
                             this.removeAttribute(name[key]);
                         }
@@ -144,8 +153,6 @@ Live.prototype = (function(currentScript) {
                         },
                         blockquote: function(html, className = '', id = '') {
                             var element = start('blockquote', className, id, true);
-                            element.set = set;
-                            element.unset = unset;
                             if (html) {
                                 element.innerHTML = '<p>' + (Array.isArray(html) ? html.join('</p><p>') : html) + '</p>';
                             }
@@ -157,8 +164,6 @@ Live.prototype = (function(currentScript) {
                         close: function(tagName, className, id, properties, text) {
                             if (tagName) {
                                 var element = start(tagName, className, id, true);
-                                element.set = set;
-                                element.unset = unset;
                                 if (properties) {
                                     for (var i in properties) {
                                         element.setAttribute(i, properties[i]);
@@ -189,8 +194,6 @@ Live.prototype = (function(currentScript) {
                         },
                         h: function(html, className = '', id = '', size = 3) {
                             var element = start('h' + size, className, id, true);
-                            element.set = set;
-                            element.unset = unset;
                             if (html) {
                                 element.innerHTML = html;
                             }
@@ -200,7 +203,7 @@ Live.prototype = (function(currentScript) {
                             return start('hr', '', '', true);
                         },
                         init: function(html) {
-                            elements[index].innerHTML = html ?? '';
+                            elements[index].init(html);
                         },
                         load: function() {
                             elements = cache;
@@ -208,10 +211,13 @@ Live.prototype = (function(currentScript) {
                             cache = null;
                             return elements[index];
                         },
+                        move: function(id) {
+                            var element = document.getElementById(id);
+                            elements[index].append(element);
+                            return element;
+                        },
                         p: function(html, className = '', id = '') {
                             var element = start('p', className, id, true);
-                            element.set = set;
-                            element.unset = unset;
                             if (html) {
                                 element.innerHTML = Array.isArray(html) ? html.join('<br>') : html;
                             }
@@ -228,8 +234,6 @@ Live.prototype = (function(currentScript) {
                         },
                         start: function(tagName, className, id, properties, html) {
                             var element = start(tagName, className, id);
-                            element.set = set;
-                            element.unset = unset;
                             if (properties) {
                                 for (var i in properties) {
                                     element.setAttribute(i, properties[i]);
@@ -248,8 +252,6 @@ Live.prototype = (function(currentScript) {
                                 index = elements.length;
                                 elements.push(element);
                             }
-                            element.set = set;
-                            element.unset = unset;
                             return element;
                         },
                         startCustomById: function(id) {
@@ -261,8 +263,6 @@ Live.prototype = (function(currentScript) {
                                 index = elements.length;
                                 elements.push(element);
                             }
-                            element.set = set;
-                            element.unset = unset;
                             return element;
                         },
                         unset: function(name) {
@@ -280,7 +280,7 @@ Live.prototype = (function(currentScript) {
                     u8arr[i] = parseInt(hexstr.slice(j, jNext), 16);
                     j = jNext;
                 }
-                return this.decoder.decode(u8arr);
+                return (this.decoder ?? new TextDecoder()).decode(u8arr);
             }
         },
         define: {
@@ -349,13 +349,13 @@ Live.prototype = (function(currentScript) {
         },
         encode: {
             value: function(str) {
-                var u8arr = this.encoder.encode(str);
+                var u8arr = (this.encoder ?? new TextEncoder()).encode(str);
                 for (var i = 0, hexstr = ''; i < u8arr.length; ++i) {
                     var byte = u8arr[i];
                     if (byte < 16) {
-                        hexstr += '0' + u8arr[i].toString(16);
+                        hexstr += '0' + byte.toString(16);
                     } else {
-                        hexstr += u8arr[i].toString(16)
+                        hexstr += byte.toString(16)
                     }
                 }
                 return hexstr;
@@ -561,6 +561,33 @@ Live.prototype = (function(currentScript) {
                     return hash;
                 }
                 return hashArray;
+            }
+        },
+        sha256: {
+            value: function(text) {
+                return crypto.subtle.digest('SHA-256', (this.encoder ?? new TextEncoder()).encode(text));
+            }
+        },
+        sha512: {
+            value: function(text) {
+                return crypto.subtle.digest('SHA-512', (this.encoder ?? new TextEncoder()).encode(text));
+            }
+        },
+        strval: {
+            value: function(buffer) {
+                if (buffer instanceof ArrayBuffer) {
+                    var u8arr = new Uint8Array(buffer);
+                    for (var i = 0, hexstr = ''; i < u8arr.length; ++i) {
+                        var byte = u8arr[i];
+                        if (byte < 16) {
+                            hexstr += '0' + byte.toString(16);
+                        } else {
+                            hexstr += byte.toString(16);
+                        }
+                    }
+                    return hexstr;
+                }
+                return buffer.toString();
             }
         },
         trim: {
