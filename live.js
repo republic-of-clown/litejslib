@@ -547,7 +547,8 @@ Live.prototype = (function(currentScript) {
                             }
                             return num() % range;
                     }
-            }})()
+                };
+            })()
         },
         rand64: {
             value: function(numofInt64, format = false) {
