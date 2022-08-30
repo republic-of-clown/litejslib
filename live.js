@@ -591,10 +591,37 @@ Live.prototype = (function(currentScript) {
                 return buffer.toString();
             }
         },
-        trim: {
-            value: function(text) {
-                return text.replace(/\s+/g, '');
-            }
+        timer: {
+            value: (function() {
+                var date = null;
+                var id = 0;
+                return {
+                    start: function(reply) {
+                        if (id) {
+                            clearTimeout(id);
+                            id = 0;
+                        }
+                        if (reply(date = new Date())) {
+                            var ontimer = function() {
+                                date.setTime(Date.now());
+                                id = 0;
+                                if (reply(date)) {
+                                    id = setTimeout(ontimer, 1000 - date.getMilliseconds());
+                                }
+                            }
+                            id = setTimeout(ontimer, 1000 - date.getMilliseconds());
+                        }
+                    },
+                    stop: function() {
+                        if (id) {
+                            clearTimeout(id);
+                            id = 0;
+                            return true;
+                        }
+                        return false;
+                    }
+                };
+            })()
         },
         [Symbol.toStringTag]: { value: Live.name }
     });
